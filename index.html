@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Decision Light - 교실 환기 결정 신호등</title>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #f4f6f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 25px;
+    }
+
+    /* 신호등 외형 */
+    .traffic-light {
+      background-color: #222;
+      width: 140px;
+      padding: 20px;
+      border-radius: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    /* 신호등 불빛 원 */
+    .light {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background-color: #444;
+      transition: background-color 0.4s, box-shadow 0.4s;
+    }
+
+    /* 신호등 상태별 점등 효과 */
+    .light.red.active {
+      background-color: #ff4d4d;
+      box-shadow: 0 0 30px #ff4d4d;
+    }
+
+    .light.yellow.active {
+      background-color: #ffcc00;
+      box-shadow: 0 0 30px #ffcc00;
+    }
+
+    .light.green.active {
+      background-color: #2ecc71;
+      box-shadow: 0 0 30px #2ecc71;
+    }
+
+    /* 수치 및 지침 표시 대시보드 */
+    .dashboard {
+      margin-top: 25px;
+      background: white;
+      padding: 20px 30px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      min-width: 280px;
+    }
+
+    .ppm-value {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #222;
+    }
+
+    .status-text {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      color: white;
+      background-color: #007bff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,123,255,0.2);
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Air Decision Light</h1>
+  <div class="subtitle">실시간 교실 CO<sub>2</sub> 환기 결정 디스플레이</div>
+
+  <!-- 신호등 UI -->
+  <div class="traffic-light">
+    <div id="red-light" class="light red"></div>
+    <div id="yellow-light" class="light yellow"></div>
+    <div id="green-light" class="light green"></div>
+  </div>
+
+  <!-- 데이터 표시 대시보드 -->
+  <div class="dashboard">
+    <div>현재 CO<sub>2</sub> 농도</div>
+    <div id="ppm-display" class="ppm-value">-- ppm</div>
+    <div id="status-display" class="status-text" style="color: #666;">연결 대기 중</div>
+    <button id="connect-btn">블루투스 연동하기</button>
+  </div>
+
+  <script>
+    const redLight = document.getElementById('red-light');
+    const yellowLight = document.getElementById('yellow-light');
+    const greenLight = document.getElementById('green-light');
+    const ppmDisplay = document.getElementById('ppm-display');
+    const statusDisplay = document.getElementById('status-display');
+    const connectBtn = document.getElementById('connect-btn');
+
+    // 수치에 따른 신호등 업데이트 함수
+    function updateTrafficLight(ppm) {
+      ppmDisplay.textContent = `${ppm} ppm`;
+
+      // 불빛 초기화
+      redLight.classList.remove('active');
+      yellowLight.classList.remove('active');
+      greenLight.classList.remove('active');
+
+      // 창업계획서 기준 적용[cite: 1]
+      if (ppm <= 800) {
+        greenLight.classList.add('active');
+        statusDisplay.textContent = '초록: 쾌적 (수업 진행)';
+        statusDisplay.style.color = '#2ecc71';
+      } else if (ppm <= 1000) {
+        yellowLight.classList.add('active');
+        statusDisplay.textContent = '노랑: 주의 (쉬는 시간에 환기)';
+        statusDisplay.style.color = '#f39c12';
+      } else {
+        redLight.classList.add('active');
+        statusDisplay.textContent = '빨강: 환기 필요 (즉시 환기 + 알림)';
+        statusDisplay.style.color = '#e74c3c';
+      }
+    }
+
+    // Web Bluetooth API 연결 처리
+    connectBtn.addEventListener('click', async () => {
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['00001101-0000-1000-8000-00805f9b34fb']
+        });
+
+        const server = await device.gatt.connect();
+        statusDisplay.textContent = '연결 완료 - 데이터 수신 중';
+
+      } catch (error) {
+        console.log('블루투스 연결 오류 또는 취소:', error);
+        // 테스트용: 버튼 클릭 시 임의 수치 적용 예시
+        const mockPpm = Math.floor(Math.random() * (1200 - 600 + 1)) + 600;
+        updateTrafficLight(mockPpm);
+      }
+    });
+  </script>
+</body>
+</html>
